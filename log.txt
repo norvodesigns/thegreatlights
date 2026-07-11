@@ -332,6 +332,65 @@ load.
     come from elsewhere (e.g. a home-page-specific shorter #lp-hills, or
     accepting the original overlap).
 
+--- Session H: mobile scroll jank + contact form fade fix, first git push ---
+User reported a to-do list: mobile scrolling glitchy at the start of home
+(near the sun) and on about, and the mobile contact form blurs/fades before
+you can reach the submit button. Also: this session set up git for the
+first time and pushed to https://github.com/norvodesigns/thegreatlights.git.
+
+  - Root-caused the scroll jank to two things in site.js's shared `update()`
+    function (runs on every scroll frame, every page):
+      1. The sun element was animating `width`/`height`/`top` every frame —
+         all three are layout-triggering CSS properties, so every scroll
+         tick forced a synchronous reflow before the browser could paint.
+         Fixed by splitting #lp-sun into a fixed-size (600px, matching the
+         largest `sz` value in the stops table so scale never exceeds 1)
+         outer element that JS only ever moves/scales via `transform`
+         (translate + scale, compositor-only, no layout cost) plus opacity,
+         and an inner `.sun-glow` child that owns the radial-gradient
+         background and the existing `lp-breathe` pulse keyframe (kept as
+         a separate element specifically so JS's inline transform and the
+         CSS keyframe's transform don't fight over the same property on the
+         same element).
+      2. The `[data-lp-float]` reveal loop called `getBoundingClientRect()`
+         on every single floating element on every scroll frame — expensive
+         on its own, and guaranteed to force a synchronous layout recompute
+         immediately after the sun's old width/height/top writes. Fixed by
+         caching each float's document-relative top/height once
+         (`measureFloats()`), re-measuring only on `document.fonts.ready`,
+         `window.load`, and a debounced `resize`/`visualViewport resize` —
+         not on every scroll frame. The per-frame loop is now pure
+         arithmetic (`cachedTop - scrollY`) plus opacity/transform/filter
+         writes, all compositor/paint-only.
+    Both changes are real, verifiable wins (eliminated the only two
+    layout-triggering property writes in the whole scroll path) — but note
+    this was reasoned from code inspection, not a live mobile device
+    profile (not available in this environment). If it's still glitchy on
+    an actual phone after this, the next place to look is the 46 particle
+    divs' concurrent CSS animations in #lp-particles, or the backdrop-filter
+    blur cost on the frosted buttons/nav — both plausible but unconfirmed.
+  - Contact form fix: `.ct-frame` (the whole unified form panel added back
+    in the per-page-redesign session) had `data-lp-float` on it, making the
+    ENTIRE tall panel — aside text, all fields, and the submit button — one
+    single reveal unit. The reveal formula fades/blurs based on distance
+    from the element's own centre to the viewport centre; for a block
+    taller than about 1.3x the viewport (easily the case for this form on a
+    short mobile screen, once you stack name/email/phone/interest/message/
+    submit), by the time you've scrolled down far enough to see the submit
+    button the block's centre is far enough away that it's already fading
+    out — exactly backwards from what you want while actively filling out a
+    form. Fix: removed `data-lp-float` from `.ct-frame` entirely, so the
+    form is always fully opaque and unblurred regardless of scroll
+    position. Left `.ct-next` (the short "what happens next" strip below
+    the form) with its reveal intact — it's non-interactive and not what
+    was reported. Verified via computed style after scrolling the submit
+    button into view: opacity 1, filter none.
+  - This was also the first time this project touched git. No repo existed
+    before this session. Initialized one, added a .gitignore for
+    .DS_Store, and pushed to the (previously empty) GitHub remote. See the
+    note in section 6 about how the push was authenticated — don't reuse
+    that pattern for future pushes without a credential helper.
+
 ============================================================
 6. THINGS TO KNOW BEFORE YOU TOUCH THIS CODE
 ============================================================
@@ -356,9 +415,25 @@ load.
   visible background+blur at rest too — several of the ones fixed this
   session had literally no background until hovered, which is why they
   were hard to see against bright parts of the atmosphere.
-- No git repo in this folder. Changes are direct file edits, no version
-  history beyond this log and whatever backups you keep yourself.
+- Git repo exists as of Session H, pushed to
+  https://github.com/norvodesigns/thegreatlights.git, branch `main`, with
+  upstream tracking already set up — a plain `git push` works. The stored
+  remote URL in .git/config has no credentials in it (by design). When a
+  token/credential is needed for a push, don't pass it inline in the `git
+  push <url>` command — it lands in shell history and the process list.
+  Use a credential helper, an env var consumed by a GIT_ASKPASS script, or
+  have the user authenticate interactively instead.
 - Contact form posts via `action="mailto:..."` — this opens the visitor's
   own email client rather than actually submitting anywhere server-side.
   Works, but fragile (fails silently if they have no mail client
   configured) — see the checklist for a recommended fix.
+- The float-reveal system (data-lp-float) caches element positions on load
+  instead of measuring every scroll frame (see Session H). If you add new
+  floating content dynamically after page load (via JS, not present in the
+  initial HTML), it won't be in the cache — call measureFloats() again, or
+  add it before the cache is first built.
+- Don't put data-lp-float on anything containing form fields or other
+  interactive controls unless it's short (well under one viewport tall).
+  The reveal formula fades based on distance from the element's own centre,
+  which actively fights usability on tall interactive blocks — see the
+  Session H contact-form fix for why.

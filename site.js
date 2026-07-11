@@ -23,7 +23,7 @@
   const yr = q('#year'); if (yr) yr.textContent = new Date().getFullYear();
 
   /* ─────────────  ATMOSPHERE  ───────────── */
-  const sky = q('#lp-sky'), sun = q('#lp-sun'), rays = q('#lp-rays'),
+  const sky = q('#lp-sky'), sun = q('#lp-sun'), sunGlow = q('#lp-sun .sun-glow'), rays = q('#lp-rays'),
         hills = q('#lp-hills'), water = q('#lp-water'), grove = q('#lp-grove'),
         mistA = q('#lp-mist-a'), mistB = q('#lp-mist-b'), nav = q('#lp-nav');
 
@@ -73,7 +73,28 @@
   // relative luminance (0–255 space) for nav contrast decisions
   const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 
+  // cache each float's document-relative position instead of calling
+  // getBoundingClientRect() on every one of them on every scroll frame —
+  // that per-frame layout read (times a dozen+ elements on content-heavy
+  // pages) was a real source of mobile scroll jank. Re-measure only when
+  // the layout can actually have changed.
   const floats = qa('[data-lp-float]');
+  let floatMeta = [];
+  const measureFloats = () => {
+    const scrollY = (document.scrollingElement || document.documentElement).scrollTop;
+    floatMeta = floats.map((f) => {
+      const r = f.getBoundingClientRect();
+      return { el: f, top: r.top + scrollY, height: r.height };
+    });
+  };
+  measureFloats();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureFloats).catch(() => {});
+  window.addEventListener('load', measureFloats);
+  let resizeTimer = null;
+  const scheduleRemeasure = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(measureFloats, 150); };
+  window.addEventListener('resize', scheduleRemeasure);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', scheduleRemeasure);
+
   let navTone = 'dark';
 
   const update = () => {
@@ -88,10 +109,14 @@
 
     if (sky) sky.style.background = `linear-gradient(180deg, ${rgb(s.top)} 0%, ${rgb(s.mid)} 52%, ${rgb(s.bot)} 100%)`;
     if (sun) {
-      sun.style.background = `radial-gradient(circle, ${rgb(s.sun)} 0%, rgba(0,0,0,0) 70%)`;
+      // transform + opacity only — compositor-only properties, no forced
+      // layout reflow on scroll (this was the biggest source of mobile jank:
+      // animating width/height/top forces a synchronous reflow every frame)
+      if (sunGlow) sunGlow.style.background = `radial-gradient(circle, ${rgb(s.sun)} 0%, rgba(0,0,0,0) 70%)`;
       sun.style.opacity = s.op.toFixed(3);
-      sun.style.width = sun.style.height = s.sz.toFixed(0) + 'px';
-      sun.style.top = `calc(${s.sunY.toFixed(1)}% - ${(s.sz / 2).toFixed(0)}px)`;
+      const sunScale = s.sz / 600;
+      const sunPx = (s.sunY / 100) * vh;
+      sun.style.transform = `translate(-50%, calc(${sunPx.toFixed(1)}px - 50%)) scale(${sunScale.toFixed(3)})`;
     }
     if (rays) rays.style.opacity = (0.5 * band(p, 0.06, 0.18) * (1 - band(p, 0.28, 0.42)) + 0.6 * band(p, 0.70, 0.84) * (1 - band(p, 0.95, 1))).toFixed(3);
     if (hills) { hills.style.opacity = (1 - band(p, 0.30, 0.50)).toFixed(3); hills.style.transform = `translateY(${(p * 150).toFixed(1)}px)`; }
@@ -111,16 +136,17 @@
       if (wantTone !== navTone) { navTone = wantTone; nav.setAttribute('data-tone', navTone); }
     }
 
-    // float reveals — fade/blur content toward the viewport centre
+    // float reveals — fade/blur content toward the viewport centre.
+    // Positions come from the cached floatMeta (see measureFloats above),
+    // not a fresh getBoundingClientRect() per element per frame.
     if (!reduceMotion) {
-      for (const f of floats) {
-        const r = f.getBoundingClientRect();
-        const c = r.top + r.height / 2;
+      for (const m of floatMeta) {
+        const c = (m.top - y) + m.height / 2;
         const d = (c - vh / 2) / vh;
         const o = clamp(1.28 - Math.abs(d) * 1.7, 0, 1);
-        f.style.opacity = o.toFixed(3);
-        f.style.transform = `translateY(${(d * -26).toFixed(1)}px)`;
-        f.style.filter = o < 0.99 ? `blur(${((1 - o) * 4.5).toFixed(2)}px)` : 'none';
+        m.el.style.opacity = o.toFixed(3);
+        m.el.style.transform = `translateY(${(d * -26).toFixed(1)}px)`;
+        m.el.style.filter = o < 0.99 ? `blur(${((1 - o) * 4.5).toFixed(2)}px)` : 'none';
       }
     }
   };
