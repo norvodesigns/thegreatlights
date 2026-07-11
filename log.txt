@@ -1,0 +1,364 @@
+THE GREAT LIGHTS — PROJECT LOG
+Life coaching & Reiki site for Amy, Lake Havasu City, AZ.
+Last updated: 2026-07-10
+
+This file exists so a future chat (Claude or otherwise) can pick up context fast
+without re-reading every file cold. It's a running history, not documentation —
+if something below sounds wrong, trust the actual code over this file and
+update this file to match.
+
+============================================================
+1. WHAT THIS IS
+============================================================
+A static 4-page marketing site, no build step, no framework, no dependencies
+except two Google Fonts and (formerly) a CDN script that has since been
+removed. Open any .html file directly or serve the folder with any static
+file server (e.g. `python3 -m http.server`).
+
+Files:
+  index.html      Home — the design "reference" page. Full dawn-to-dusk
+                   atmosphere arc (data-atmo 0 -> 1). Never redesigned;
+                   every other page derives its shared vocabulary from it.
+  about.html       About — warm morning palette, editorial layout.
+  services.html    Services — bright midday-into-aqua palette, structured index.
+  contact.html     Contact — golden-hour dusk palette, unified form panel.
+  styles.css       Single shared stylesheet, ~880 lines. All 4 pages import it.
+  site.js          Single shared script, one big IIFE. All 4 pages import it.
+  sitemap.xml      Added this session.
+  robots.txt       Added this session.
+  assets/          Logo/emblem PNG+WEBP pairs, favicons. No photography —
+                   the whole site is CSS/SVG-drawn, no raster hero images.
+
+No git repo, no package.json, no CI. Changes are made directly to these files.
+
+============================================================
+2. THE CORE IDEA: ONE ATMOSPHERE, FOUR WINDOWS
+============================================================
+Every page shares a fixed-position `.atmosphere` layer (z-index 0) sitting
+behind the actual content (z-index 2): a sky gradient (#lp-sky), sun/rays,
+mist layers, drifting particles, a hills SVG, a water-fill div, a
+grove/landscape SVG, a vignette and film grain.
+
+site.js drives all of it from ONE continuous "dawn to dusk" color arc — a
+`stops` array of 7 keyframes (t=0 to t=1) blended with linear interpolation
+based on scroll position. Each page occupies a slice of that arc via
+`data-atmo-start` / `data-atmo-end` attributes on <body>:
+
+  index.html     0.00 -> 1.00   (the full journey — dawn to dusk)
+  about.html     0.12 -> 0.40   (dawn edge into warm morning green)
+  services.html  0.42 -> 0.72   (pale midday mint into aqua/water)
+  contact.html   0.84 -> 1.00   (deep dusk green into gold)
+
+This means navigating between pages feels like moving through one continuous
+world at a different time of day, not four disconnected templates. Do not
+change these ranges without checking what visually sits at each page's start
+and end (see the `stops` array in site.js for the actual color keyframes).
+
+The reveal system: any element with `data-lp-float` fades/blurs based on its
+distance from the vertical center of the viewport (opacity/blur computed each
+scroll frame). This is why content "breathes" in as you scroll. It's also why
+a scroll-snap mechanism was tempting (see section 5) — the reveal system's
+own math already defines "the point of maximum clarity" as viewport-center.
+
+============================================================
+3. DESIGN SYSTEM REFERENCE
+============================================================
+Fonts: Cormorant Garamond (display/serif, weight 300, italic for emphasis)
+       + Jost (body, heavy letter-spacing, uppercase for labels).
+
+Color tokens (:root in styles.css):
+  --ink-night/--ink-deep/--ink-forest/--ink-green/--ink-teal   dark inks
+  --cream/--cream-warm/--cream-sage                            light body text
+  --gold/--gold-soft/--rose                                    accent family
+  --moss/--moss-deep/--moss-panel                               About's accent family (warm olive-gold)
+  --aqua/--aqua-deep/--aqua-panel                                Services' accent family (teal/turquoise)
+  --dusk-gold/--dusk-deep/--dusk-panel                           Contact's accent family
+  --ease-out / --ease-inout / --ease-spring                      motion easing tokens
+
+Per-page identity (this is the answer to "why does each page look different"):
+  About     — moss/gold, meadow hills with a scalloped orchard-canopy texture
+              baked into the hill silhouette itself (not the separate grove
+              layer — see section 6 for why). Asymmetric editorial hero
+              (name left, medallion right). Vertical "journey" timeline
+              instead of a card grid. Pull-quote breaks up the story text.
+              Framed keepsake CTA box with gold corner brackets.
+  Services  — aqua/teal, wide smooth sweeping dune hills (NOT the original
+              angular mesa version — see section 6, it was redesigned after
+              feedback that mesas felt too angular/lifeless). Turquoise
+              water-fill override (`body.pg-services #lp-water .water-fill`).
+              Structured index-list of offerings (numbered rows with anchor
+              ids svc-coaching/svc-reiki/svc-transformation/svc-discovery),
+              not a card grid. TOC pills in the hero jump to each row.
+              Connected-line process stepper and benefit strip.
+  Contact   — gold/dusk, one unified `.ct-frame` panel (gold corner brackets,
+              internal divider) instead of two separate floating cards.
+              "What happens next" reassurance strip below the form.
+  Home      — untouched reference. Centered hero, list-style services
+              preview, 3-step path, stillness quote + testimonial card.
+
+Shared connective tissue (do not fork these per-page — they're what makes
+the site read as ONE site): nav/footer markup, .cta-pill button style,
+eyebrow + roman-numeral section labels (I · Presence, II · The Work,
+III · Begin Your Journey), the data-lp-float reveal motion, page-in fade-up.
+
+============================================================
+4. RESPONSIVE / A11Y NOTES
+============================================================
+Breakpoints in use: 1500 (large desktop), 1024 (tablet landscape), 900 (nav
+switches to hamburger), 768 (tablet portrait), 600 (large phones), 400 (small
+phones), plus a max-height:560px landscape-phone catch. Follow these existing
+breakpoints rather than inventing new ones.
+
+Fixed an accessibility bug this project: the hero `<section aria-labelledby>`
+on about/services/contact referenced an id that didn't exist on the h1. Now
+every hero h1 has a matching id (about-hero-title / svc-hero-title /
+contact-hero-title).
+
+`prefers-reduced-motion: reduce` is respected throughout — disables particles,
+loader, float reveals, and (per section 7) the magnetic button JS.
+
+============================================================
+5. SESSION-BY-SESSION CHANGE LOG
+============================================================
+
+--- Session A: per-page redesign ---
+Starting point: all 4 pages were visually identical — same components
+reskinned with different accent colors only. User asked for the homepage to
+be the *foundation/style reference* but for each other page to get its own
+color story and layout.
+  - Tuned the atmosphere data-atmo ranges above (previously less
+    differentiated — about was 0.24-0.48, services 0.30-0.60, contact
+    0.70-1.0; narrowed/shifted so each page's mood reads more distinctly).
+  - Rebuilt About: hero-split layout, ab-story/pull-quote, ab-timeline,
+    ab-badges, framed CTA. New CSS component classes throughout.
+  - Rebuilt Services: svc-toc, svc-index/svc-row, connected benefit-grid
+    and process-steps, staggered quote-grid.
+  - Rebuilt Contact: ct-frame/ct-aside/ct-form-col wrapping the *same* form
+    markup/ids (had to preserve #contact-form, .form-card, field ids exactly
+    — site.js's form validation logic depends on them), ct-next strip.
+  - Bugs found + fixed during verification (via headless-Chrome screenshot
+    QA, see section 8): pull-quote was nearly invisible (inherited opacity
+    .76 from a generic sibling selector, plus too-light a color) — fixed to
+    opacity 1 + var(--ink-green); services offering rows had a big dead gap
+    between the bullet list and the meta info on wide screens (flex:1 on
+    the list) — capped list width instead; Contact's ct-frame was too
+    transparent and the hard-edged hill SVG bled through the glass looking
+    like a bug — bumped background opacity from .66 to .94.
+
+--- Session B: landscapes, scroll magnet v1, magnetic hover ---
+User: home/contact are good, but about/services need more contrasting
+landscapes than "just rolling hills", a scroll-snap "magnet" so content
+doesn't rest mid-blur, and better button hover states.
+  - Replaced About's and Services' hills/grove SVGs (previously byte-for-byte
+    identical to home's on every page) with page-specific paths + gradient
+    colors. About got a warm moss/gold palette; Services got aqua/teal +
+    a turquoise water-fill override scoped to `body.pg-services`.
+  - IMPORTANT GOTCHA discovered: the grove layer's opacity formula in
+    site.js is `band(p, 0.66, 0.86)` — since About's data-atmo range only
+    reaches 0.40, the grove is *mathematically always invisible* on About.
+    Fix used: baked the orchard-canopy scalloped texture into hills layers
+    B/C instead (those ARE visible across About's whole range), rather than
+    the separate #lp-grove element. If you ever add art meant to be seen on
+    About or want it in the grove layer, remember this — check the opacity
+    band math in site.js's `update()` against the page's data-atmo range
+    before assuming a layer will render.
+  - Scroll magnet v1: listened to Lenis's `scroll` event, debounced 170ms,
+    snapped to nearest `#main > .zone, #main > .section` top edge (offset by
+    nav height), capped to only fire within 0.5*viewport of a boundary.
+  - Magnetic button hover: JS mousemove-tracks cursor for
+    .cta-pill/.nav-cta/.form-submit/.svc-toc a/.contact-arrow, translates
+    the button toward the cursor (clamped ±10/±8px) + a spring-eased
+    snap-back on mouseleave. Gated behind
+    `matchMedia('(hover:hover) and (pointer:fine)')` and !reduceMotion so
+    touch devices just get the plain CSS :hover. Added a diagonal shine-sweep
+    pseudo-element to the primary CTA buttons. Added --ease-spring token
+    (cubic-bezier(0.34,1.56,0.64,1), a slight overshoot/bounce).
+
+--- Session C: magnet v2, dune redesign, persistent nav, mobile menu v1 ---
+User: still don't feel the magnet ("just momentum scrolls past everything"),
+Services landscape too angular/not alive, navbar should be persistent
+(it was hiding on scroll-down), mobile menu numbers should go and links
+should be left-justified with the info block centered.
+  - Diagnosed why the magnet wasn't felt: top-level `.section` elements are
+    often taller than one viewport (e.g. Services' whole offerings block),
+    so the 0.5*vh cap meant it silently never fired most of the time.
+    Fix: switched snap targets to every `[data-lp-float]` block (much finer
+    granularity — same elements the reveal system already treats as
+    individual focus points), centered instead of top-aligned, loosened the
+    cap to 0.92*vh, shortened debounce 170ms -> 110ms. Verified via
+    synthetic wheel-event tests that it now reliably pulls 300-480px at
+    every tested scroll depth (previously ~0 most of the time).
+  - Services landscape: the mesa/butte hills (hard right-angle L-line
+    plateaus) were replaced with wide sweeping cubic-bezier dune curves, and
+    the sharp zigzag reed silhouette (straight-line spikes) was replaced
+    with the same smooth Q-curve scallop technique used for About's orchard.
+  - Removed the nav's hide-on-scroll-down behavior entirely (JS block +
+    .nav-hidden CSS class) — nav is `position:fixed` already, so removing
+    the hide logic makes it simply always visible.
+  - Mobile menu v1: stripped the `<span class="m-index">01</span>` numbers
+    from all 4 pages, wrapped the 4 links in a shrink-wrapped `.m-links` div
+    with `align-items:flex-start` so they share a left edge as a group,
+    while `.mobile-menu` itself stayed `align-items:center` so that group
+    centers on the page. `.m-foot` got `align-self:stretch` so it centers
+    independently of the (now off-center-anchored) link group.
+
+--- Session D: mobile menu v2, Lenis removed ---
+User clarified: mobile menu text should be left-justified but the WHOLE
+BLOCK centered on the page (not stuck to the left edge — v1 had actually
+achieved this already, this was a confirmation/repeat of the same ask, no
+structural change needed here beyond what v1 did). Also: Lenis (the smooth-
+scroll library) feels sluggish — make it snappier or remove it.
+  - Decision: removed Lenis entirely rather than tuning it. Deleted the CDN
+    `<script src=".../lenis@1.1.13/...">` tag from all 4 pages. Rewrote
+    anchor-link handling (used by the Services TOC pills) and the scroll
+    magnet to use native `window.scrollTo({top, behavior:'smooth'})` instead
+    of `lenis.scrollTo()`. The atmosphere/reveal system was already driven
+    by native `scroll` events (Lenis just sat on top smoothing the position),
+    so removing Lenis didn't touch that code path at all.
+  - Verified zero console errors on all 4 pages post-removal, and re-tested
+    the magnet with real wheel input against native scroll — still engages
+    correctly (now sometimes pulls backward as well as forward, which is
+    actually more correct than the Lenis version, which always overshot
+    forward due to Lenis's own added momentum).
+
+--- Session E: magnet removed, mobile menu reverted to simple centering ---
+User: scroll magnet still not what they wanted — remove it entirely. Mobile
+menu — actually just make it fully centered like it originally was, not
+left-justified-as-a-group.
+  - Deleted the entire scroll-magnet block from site.js. Anchor-link native
+    smooth-scroll (Services TOC) was left in place — that wasn't the
+    complaint, only the section-settle magnet was.
+  - Removed the `.m-links` wrapper div from all 4 pages' mobile menus and
+    the CSS that went with it. Back to `.mobile-menu { align-items:center }`
+    with `.m-link` as direct children — each line individually centered,
+    matching the very original design (line width varies, e.g. "Services"
+    is wider than "Home", each centers on its own).
+  Net result of sessions C/D/E on the mobile menu: numbers are gone
+  (permanent), everything else is back to how it started, just without the
+  numbers. The left-justify experiment was tried and explicitly un-done.
+
+--- Session F (this one): frost, contrast audit, SEO ---
+User: log this whole history to a file; frost the transparent buttons more
+(hard to see against bright atmosphere); find and fix any light/white text
+against bright backgrounds; add sitemap.xml + robots.txt; start on SEO.
+  - Button frosting: raised background opacity and added/increased
+    backdrop-filter blur on .cta-pill (.12->.22 opacity, blur 18->22px +
+    saturate(1.3)), .cta-pill.ghost-ink (switched from a near-invisible dark
+    tint rgba(22,48,36,.06) to a white frosted rgba(255,255,255,.4) — this
+    was also a latent contrast bug: ghost-ink text is dark ink-forest, which
+    needs a LIGHT backing surface to stay legible regardless of what the
+    atmosphere is doing behind it), .nav-cta (added backdrop-filter, which
+    it never had), the light-tone nav variant, .svc-toc a (had NO background
+    at rest at all before, only added one on :hover), and .contact-arrow.
+  - Contrast audit: did a real screenshot sweep (headless Chrome, forced
+    every data-lp-float to its resolved state, real scroll, 550px
+    increments) across all 4 pages rather than guessing from the CSS.
+    Found and fixed two real issues, both on the home page (about/services/
+    contact structurally can't have this problem — they only ever use dark
+    ink text on their light-toned sections, by design):
+      1. `.zone-quote` ("Healing begins with a single breath.") was #4b5a50
+         at .9 opacity sitting on the arc's brightest, most washed-out pale
+         zone — effective contrast was poor. Darkened to #263229 @ .96.
+      2. `.path-desc` (the small descriptive text under Discover/Settle/
+         Become) was opacity .74 on top of an already-light cream-sage base
+         color, landing on a fairly saturated aqua zone — legible but weak.
+         Bumped path-desc .74->.92, path-eyebrow .6->.8, path-num .5->.6
+         (these three classes are ONLY used in zone-path, confirmed via
+         grep, so this was safe to change directly with no collateral
+         effect elsewhere).
+    Also added a subtle two-layer text-shadow (a soft 20px glow + a tight
+    3px contact shadow, both dark) to every zone that puts light/cream text
+    directly on the raw atmosphere with no card/panel behind it: .zone-home,
+    .zone-path, .zone-stillness, .zone-contact, .hero-cream. This is a
+    robustness measure, not a targeted fix — exact atmosphere brightness at
+    a given zone shifts with viewport height (since scroll fraction depends
+    on total document height), so this guards against contrast dipping on
+    devices/window sizes not covered by the specific screenshots checked.
+  - Added sitemap.xml (4 URLs, canonical) and robots.txt (allow all, points
+    to sitemap) at the site root.
+  - SEO meta pass on all 4 pages: fixed og:image from a relative path
+    (`assets/logo-full.png`, which social crawlers often fail to resolve)
+    to an absolute URL; added og:url, og:site_name, og:image:width/height,
+    and a full twitter:card block (none of this existed before); added
+    explicit `<meta name="robots" content="index, follow">`. Added JSON-LD
+    structured data to about/services/contact (previously ONLY index.html
+    had any — a HealthAndBeautyBusiness block): about.html got an AboutPage
+    wrapping the business info, services.html got the business info PLUS a
+    hasOfferCatalog listing all 4 services (Life Coaching/Reiki Healing/
+    Transformation Journey/Discovery Call) — this is the one most likely to
+    produce rich results, contact.html got a ContactPage with a
+    ContactPoint. All 4 pages now also carry BreadcrumbList schema (except
+    home, which doesn't need one). All JSON-LD validated as parseable JSON
+    before finishing.
+
+--- Session G: frosting follow-up + home hero clearance ---
+User: apply the frosting to ALL buttons (not just some), and move the home
+hero content up so the CTA buttons don't sit on top of the hill landscape on
+load.
+  - Audited every pill/circular interactive element site-wide (grepped every
+    class used on <a>/<button> tags). The one genuine gap: `.nav-toggle`
+    (the hamburger button) had `background: none` — zero fill, zero blur,
+    on every single page. Gave it the same treatment as the other buttons:
+    rgba background + backdrop-filter blur + border, at rest (not just
+    hover), plus a light-tone override to match `#lp-nav[data-tone="light"]`.
+    Everything else (.cta-pill, .ghost-ink, .nav-cta, .svc-toc a,
+    .contact-arrow) was already frosted from the previous session — verified
+    by grepping for every `border-radius: 100px|50%` rule in the stylesheet
+    and cross-checking each against the HTML's actual class usage.
+  - Home hero overlap: measured via headless Chrome that on load
+    (scroll=0, natural — not force-revealed) the "What We Offer"/"Book a
+    Call" CTA row's bottom edge landed at y=694 out of a 900px viewport,
+    while the hills' visible crest sits around y=620-650 — the buttons were
+    genuinely straddling the horizon line, hill-green visible through the
+    glass on their lower half. Root cause: `.zone-home` used
+    `justify-content:center` with 0 top / 20vh bottom padding; because the
+    content block (609px) plus that bottom padding already exceeded the
+    92vh min-height, the "centering" had degenerated to content pinned at
+    the very top of the box — there was no slack left for padding tweaks to
+    push it any higher. Fix: switched to explicit `justify-content:
+    flex-start` with a small fixed top padding (2vh, so the math is no
+    longer ambiguous/degenerate), and trimmed the hero's internal vertical
+    rhythm — home-title max clamp 138px->128px, home-eyebrow margin-bottom
+    24->14, home-sub margin-top 26->16 + line-height 1.95->1.8,
+    home-cta-wrap margin-top 32->18. Also fixed the matching mobile
+    (max-width:600px) padding override, which had its own hardcoded
+    `0 7vw 16vh` that would have silently undone the desktop fix at small
+    widths. Verified via screenshot + pixel zoom: CTA row now ends at
+    y≈622, a clean ~30-50px gap of sky above the hill line, on both desktop
+    (1440x900) and mobile (390x844).
+  - This did modestly shrink the "Begin again." headline (~7% smaller at
+    max width) and tighten the spacing beneath it. If a future request
+    wants the headline back at full 138px, the clearance fix will need to
+    come from elsewhere (e.g. a home-page-specific shorter #lp-hills, or
+    accepting the original overlap).
+
+============================================================
+6. THINGS TO KNOW BEFORE YOU TOUCH THIS CODE
+============================================================
+- No Lenis. Don't re-add a smooth-scroll library without asking — it was
+  explicitly removed twice-over (once for sluggishness, its replacement
+  scroll-magnet was then also removed by explicit request). Native scroll
+  is the current, confirmed-preferred state.
+- No scroll-snap / magnet mechanism. Was built, iterated twice, then
+  explicitly removed. Don't re-add without the user asking for it again.
+- The #lp-grove layer is invisible on About (data-atmo range never reaches
+  its 0.66-0.86 visibility band) and only partially visible near the very
+  end of Services (ramps 0->~0.3 opacity from 0.66 to Services' max of
+  0.72). Contact's grove IS fully visible (range 0.84-1.0 sits inside the
+  band) and still uses the ORIGINAL pine-forest art, unchanged. Home's
+  grove is also the original, fully visible near the end of its range.
+- About/Services/Contact only ever use dark ink text on light-toned
+  sections — this was a deliberate structural choice (not an accident) and
+  is *why* those pages can't have the "white text on bright background"
+  problem that the home page's raw-atmosphere cream-text zones can.
+- .svc-toc / .cta-pill / .nav-cta etc. now have backdrop-filter blur at
+  REST, not just on :hover. If you add a new glassy button, give it a
+  visible background+blur at rest too — several of the ones fixed this
+  session had literally no background until hovered, which is why they
+  were hard to see against bright parts of the atmosphere.
+- No git repo in this folder. Changes are direct file edits, no version
+  history beyond this log and whatever backups you keep yourself.
+- Contact form posts via `action="mailto:..."` — this opens the visitor's
+  own email client rather than actually submitting anywhere server-side.
+  Works, but fragile (fails silently if they have no mail client
+  configured) — see the checklist for a recommended fix.
