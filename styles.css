@@ -819,12 +819,19 @@ a.ct-detail__link:hover { color: var(--dusk-deep); text-decoration: underline; t
 .footer-base .fb-copy { font-size: 11px; letter-spacing: .04em; opacity: .55; }
 .footer-base .fb-tag { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; opacity: .45; }
 
+.footer-credit { max-width: 1080px; margin: 16px auto 0; text-align: center; }
+.footer-credit a {
+  font-size: 10px; letter-spacing: .1em; text-decoration: none; color: inherit; opacity: .5;
+  transition: opacity .3s ease, color .3s ease;
+}
+.footer-credit a:hover { opacity: 1; color: var(--gold-soft); }
+
 /* ═══════════════  RESPONSIVE  ═══════════════ */
 
 /* large desktop refinements */
 @media (min-width: 1500px) {
   .section-inner { max-width: 1160px; }
-  .footer-inner, .footer-base { max-width: 1160px; }
+  .footer-inner, .footer-base, .footer-credit { max-width: 1160px; }
 }
 
 /* tablet landscape */

@@ -469,6 +469,17 @@ still felt "framy, almost like stop motion" on mobile.
     check itself inside the page via `setTimeout`/`performance.now()` and
     return the result, instead of polling from outside with assumed delays.
 
+--- Session J: designer credit in footer ---
+Added a small "Created by Norvo Designs · norvodesigns.com" line
+(`.footer-credit`) below `.footer-base` on all 4 pages, linking to
+https://norvodesigns.com (target="_blank" rel="noopener"). Styled quiet
+(opacity .5, brightens to gold on hover, matching the existing footer link
+hover pattern) — visible if you look, not competing with the business's
+own branding above it. Same identical markup block on all 4 pages, same
+as the rest of the footer — if the footer copy/structure changes in one
+place going forward, remember to touch all 4 files (there's no shared
+partial/include system here, plain static HTML).
+
 ============================================================
 6. THINGS TO KNOW BEFORE YOU TOUCH THIS CODE
 ============================================================
