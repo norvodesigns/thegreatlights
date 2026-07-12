@@ -391,6 +391,84 @@ first time and pushed to https://github.com/norvodesigns/thegreatlights.git.
     note in section 6 about how the push was authenticated — don't reuse
     that pattern for future pushes without a credential helper.
 
+--- Session I: focus window, shadows, mobile-menu ring bug, scroll smoothing ---
+User to-do list: the reveal "in focus" window felt too narrow; text needed
+more drop shadow for legibility; the mobile menu's Home link sometimes got
+a stray gold outline rectangle "seemingly randomly"; and scenery transitions
+still felt "framy, almost like stop motion" on mobile.
+
+  - Focus window: the opacity/blur formula in the [data-lp-float] loop
+    (site.js `update()`) used `1.28 - |d|*1.7` where d is distance from
+    viewport centre in viewport-heights — that only reached opacity 1
+    within about ±16.5% of centre (~33% of the screen), fading everywhere
+    else. Replaced with a band-based formula using the existing `band()`
+    helper: `band(frac,0,0.1) * (1-band(frac,0.9,1))` where frac = element
+    centre / viewport height. This gives exactly opacity 1 across the
+    middle 80% of the viewport (10% fade band at the very top, 10% at the
+    very bottom) — verified by evaluating the formula directly for
+    frac = 0..1 in the browser. The translateY parallax lift was left as-is
+    (still keyed off the old `d` distance metric) — only opacity/blur
+    changed, since the parallax motion wasn't part of the complaint.
+  - Text shadow: strengthened the existing dark text-shadow (used on
+    .zone-home/.zone-path/.zone-stillness/.zone-contact/.hero-cream — the
+    light-text-on-raw-atmosphere zones) from a 2-layer
+    `0 2px 20px rgba(...,.22), 0 1px 4px rgba(...,.16)` to a 3-layer
+    tight+medium+wide combo at higher opacity. Also added `.tone-cream` to
+    that same group (it wasn't covered before, and is used on contact.html's
+    form section wrapper). NEW this session: added a subtle light/white
+    halo shadow (`0 1px 1px rgba(255,255,255,.5), 0 2px 16px
+    rgba(255,255,255,.4)`) to `.tone-ink`, `.tone-ink-green`, and
+    `.hero-ink` — the shared dark-ink utility classes used throughout
+    About/Services — so dark text also gets a touch of separation from the
+    atmosphere instead of only light text being covered.
+  - Mobile menu focus-ring bug: root cause was `f[0].focus()` in
+    `openMenu()` (site.js) — moving focus into the opened menu for
+    keyboard/screen-reader users, which is correct a11y practice, but some
+    browsers show the `:focus-visible` gold ring for script-triggered focus
+    inconsistently, which is exactly what read as "seemingly random" to the
+    user. First attempt: added a `.no-ring` class before the focus() call,
+    removed via `setTimeout(...,400)`. WRONG — verified via a page-clock
+    -precise test (sampling activeElement/classList/:focus-visible at fixed
+    delays via the page's own setTimeout, not Python-side sleep, which
+    proved unreliable for this) that the ring would pop back in ~460ms
+    after opening even if the user hadn't done anything — i.e. the same bug,
+    just on a delay. Fixed properly: remove `.no-ring` on the element's own
+    `blur` event instead of a timer, so the ring stays suppressed for
+    exactly as long as that specific programmatic focus holds (however
+    long that is), and a genuine subsequent Tab keypress — which moves
+    focus to a *different* element that never got `.no-ring` — still shows
+    the ring normally. Verified both cases explicitly: focus held 2 full
+    seconds with no ring appearing, and a real Tab keypress afterward
+    showing the ring on "Services". Applied the same `focusQuiet()` helper
+    to `closeMenu()`'s restore-focus call too, for consistency.
+  - Scroll "stop motion" smoothing: added a short `transition: ... .12s
+    linear` to every atmosphere element whose background/opacity/transform
+    site.js sets on scroll (#lp-sky, #lp-rays, #lp-sun, #lp-mist-a/b,
+    #lp-hills, #lp-water, #lp-grove) and to `[data-lp-float]`'s
+    opacity/transform/filter. The theory: mobile browsers throttle native
+    'scroll' event dispatch during an active touch-drag more than during
+    momentum scroll or desktop wheel scroll, so JS was sometimes only
+    getting to update these styles in sparse bursts — without a CSS
+    transition, each update hard-snaps to its new value, which reads as
+    choppy/stepped ("stop motion") when updates are infrequent. The
+    transition lets the compositor interpolate smoothly between whatever
+    values JS manages to set, independent of how often it actually runs.
+    120ms is short enough to still feel tightly coupled to scroll input.
+    This is reasoned from documented mobile browser behaviour, not measured
+    on a real device in this environment — if it's still choppy after this,
+    it's likely the 'scroll' event throttling itself rather than anything
+    CSS can paper over, and the next step would be also listening to
+    `touchmove` directly to sample position more eagerly during active
+    drags.
+  - Lesson for future debugging sessions: when timing a JS effect via
+    browser automation, don't trust `asyncio.sleep(N)` on the Python side
+    to correspond to N real milliseconds of page time — CDP round-trip
+    overhead accumulates and produced at least one false negative this
+    session (a test that looked like the fix wasn't working, when it
+    actually was — see the focus-ring debugging above). Schedule the
+    check itself inside the page via `setTimeout`/`performance.now()` and
+    return the result, instead of polling from outside with assumed delays.
+
 ============================================================
 6. THINGS TO KNOW BEFORE YOU TOUCH THIS CODE
 ============================================================

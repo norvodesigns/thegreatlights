@@ -143,7 +143,12 @@
       for (const m of floatMeta) {
         const c = (m.top - y) + m.height / 2;
         const d = (c - vh / 2) / vh;
-        const o = clamp(1.28 - Math.abs(d) * 1.7, 0, 1);
+        // in-focus window spans the middle 80% of the viewport (10% fade
+        // band at the top, 10% at the bottom) — previously only the
+        // middle ~33% was ever fully sharp, so most of the screen sat
+        // partially blurred at any given moment.
+        const frac = c / vh;
+        const o = band(frac, 0, 0.1) * (1 - band(frac, 0.9, 1));
         m.el.style.opacity = o.toFixed(3);
         m.el.style.transform = `translateY(${(d * -26).toFixed(1)}px)`;
         m.el.style.filter = o < 0.99 ? `blur(${((1 - o) * 4.5).toFixed(2)}px)` : 'none';
@@ -170,6 +175,23 @@
   if (toggle && menu) {
     const focusable = () => qa('a, button', menu).filter((el) => !el.hasAttribute('disabled'));
     let lastFocused = null;
+    // moving focus here is for keyboard/screen-reader users (so focus lands
+    // inside the opened menu / returns to the toggle on close) — it's not a
+    // real keyboard interaction, but some browsers show the :focus-visible
+    // ring for it anyway (inconsistently, hence it looking "random"). Tag
+    // the element so CSS can suppress the ring for just this one focus call,
+    // without touching real tab-navigation within the menu.
+    const focusQuiet = (el) => {
+      if (!el) return;
+      el.classList.add('no-ring');
+      // clear on blur, not a timer — a fixed timeout would let the ring pop
+      // in later while focus never actually moved, which looks exactly like
+      // the bug it's meant to fix. Real subsequent keyboard nav (Tab) moves
+      // focus to a different element, which never got 'no-ring', so it gets
+      // the normal ring as expected.
+      el.addEventListener('blur', () => el.classList.remove('no-ring'), { once: true });
+      el.focus();
+    };
 
     const openMenu = () => {
       lastFocused = document.activeElement;
@@ -178,7 +200,7 @@
       toggle.setAttribute('aria-expanded', 'true');
       toggle.setAttribute('aria-label', 'Close menu');
       menu.removeAttribute('inert');
-      const f = focusable(); if (f.length) setTimeout(() => f[0].focus(), 60);
+      const f = focusable(); if (f.length) setTimeout(() => focusQuiet(f[0]), 60);
     };
     const closeMenu = (restore = true) => {
       body.classList.remove('menu-open');
@@ -186,7 +208,7 @@
       toggle.setAttribute('aria-expanded', 'false');
       toggle.setAttribute('aria-label', 'Open menu');
       menu.setAttribute('inert', '');
-      if (restore && lastFocused) lastFocused.focus();
+      if (restore && lastFocused) focusQuiet(lastFocused);
     };
     menu.setAttribute('inert', '');
     toggle.addEventListener('click', () => body.classList.contains('menu-open') ? closeMenu() : openMenu());

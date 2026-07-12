@@ -68,6 +68,9 @@ a { color: inherit; }
   outline-offset: 3px;
   border-radius: 2px;
 }
+/* suppressed for JS-driven a11y focus moves (mobile menu open/close) that
+   aren't a real keyboard interaction — see focusQuiet() in site.js */
+.no-ring:focus-visible { outline: none; }
 
 ::selection { background: rgba(201,168,106,.32); color: #fff; }
 
@@ -104,13 +107,21 @@ a { color: inherit; }
 /* ═══════════════  ATMOSPHERE  (reference — unchanged)  ═══════════════ */
 .atmosphere { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 
-#lp-sky { position: absolute; inset: 0; background: linear-gradient(180deg, #10243a 0%, #2f5a5e 52%, #d98f86 100%); }
+/* scroll-driven properties on these atmosphere layers get a short linear
+   transition — mobile browsers throttle 'scroll' event dispatch during an
+   active touch-drag (fires less often than during momentum/desktop wheel
+   scroll), so without this the sky/hills/etc previously hard-snapped
+   between infrequent updates, reading as choppy "stop motion". The
+   transition lets the compositor interpolate smoothly between whatever
+   values JS manages to set, regardless of how often it gets to run. Short
+   enough to still feel tightly coupled to the scroll input. */
+#lp-sky { position: absolute; inset: 0; background: linear-gradient(180deg, #10243a 0%, #2f5a5e 52%, #d98f86 100%); transition: background .12s linear; }
 
 #lp-rays {
   position: absolute; left: 50%; top: -25%; width: 170%; height: 120%;
   transform: translateX(-50%); opacity: 0; mix-blend-mode: screen;
   background: repeating-conic-gradient(from 0deg at 50% 0%, rgba(255,248,225,0) 0deg, rgba(255,248,225,.13) 2deg, rgba(255,248,225,0) 5.2deg);
-  filter: blur(7px);
+  filter: blur(7px); transition: opacity .12s linear;
   animation: lp-rayspin 24s ease-in-out infinite;
 }
 
@@ -120,6 +131,7 @@ a { color: inherit; }
   position: absolute; left: 50%; top: 0; width: 600px; height: 600px; border-radius: 50%;
   opacity: .85; will-change: transform, opacity;
   transform: translate(-50%, calc(62% - 50%));
+  transition: transform .12s linear, opacity .12s linear;
 }
 #lp-sun .sun-glow {
   position: absolute; inset: 0; border-radius: 50%;
@@ -130,21 +142,21 @@ a { color: inherit; }
 #lp-mist-a {
   position: absolute; left: -8%; width: 116%; top: 40%; height: 34%;
   background: radial-gradient(ellipse 60% 100% at 50% 50%, rgba(236,250,244,.55) 0%, rgba(236,250,244,0) 70%);
-  filter: blur(16px); opacity: .3;
+  filter: blur(16px); opacity: .3; transition: opacity .12s linear;
   animation: lp-mistA 28s ease-in-out infinite;
 }
 #lp-mist-b {
   position: absolute; left: -8%; width: 116%; top: 56%; height: 30%;
   background: radial-gradient(ellipse 70% 100% at 50% 50%, rgba(220,244,236,.5) 0%, rgba(220,244,236,0) 72%);
-  filter: blur(20px); opacity: .22;
+  filter: blur(20px); opacity: .22; transition: opacity .12s linear;
   animation: lp-mistB 36s ease-in-out infinite;
 }
 
 #lp-particles { position: absolute; inset: 0; overflow: hidden; }
 
-#lp-hills { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 54vh; opacity: 1; }
+#lp-hills { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 54vh; opacity: 1; will-change: transform, opacity; transition: transform .12s linear, opacity .12s linear; }
 
-#lp-water { position: absolute; left: 0; right: 0; bottom: 0; height: 46vh; opacity: 0; }
+#lp-water { position: absolute; left: 0; right: 0; bottom: 0; height: 46vh; opacity: 0; transition: opacity .12s linear; }
 #lp-water .water-fill {
   position: absolute; inset: 0;
   background: linear-gradient(180deg, rgba(120,196,200,0) 0%, rgba(86,168,176,.5) 36%, rgba(40,108,118,.95) 100%);
@@ -154,7 +166,7 @@ body.pg-services #lp-water .water-fill {
   background: linear-gradient(180deg, rgba(180,240,235,0) 0%, rgba(112,214,214,.55) 34%, rgba(46,158,164,.96) 100%);
 }
 
-#lp-grove { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 48vh; opacity: 0; }
+#lp-grove { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 48vh; opacity: 0; will-change: transform, opacity; transition: transform .12s linear, opacity .12s linear; }
 
 .vignette {
   position: absolute; inset: 0;
@@ -330,12 +342,12 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
 .zone { display: flex; text-align: center; }
 
 /* ───── shared reveal primitive (used by every page) ───── */
-[data-lp-float] { will-change: opacity, transform; }
+[data-lp-float] { will-change: opacity, transform; transition: opacity .12s linear, transform .12s linear, filter .12s linear; }
 
 /* ═══════════════  HOME ZONES  (reference — preserved verbatim)  ═══════════════ */
 .zone-home {
   min-height: 92vh; flex-direction: column; align-items: center; justify-content: flex-start;
-  padding: 2vh 8vw 10vh; color: #f3ede2; text-shadow: 0 2px 20px rgba(8,16,12,.22), 0 1px 4px rgba(8,16,12,.16);
+  padding: 2vh 8vw 10vh; color: #f3ede2; text-shadow: 0 1px 2px rgba(4,10,7,.45), 0 2px 12px rgba(4,10,7,.38), 0 4px 30px rgba(4,10,7,.3);
 }
 .home-eyebrow { font-size: 11px; letter-spacing: .4em; opacity: .78; margin-bottom: 14px; }
 .home-title { font-size: clamp(58px, 8.6vw, 128px); line-height: .94; letter-spacing: -.01em; }
@@ -421,7 +433,7 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
 .service-desc { font-size: 12.5px; letter-spacing: .03em; line-height: 1.85; opacity: .74; font-weight: 300; }
 .service-meta { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; opacity: .5; margin-top: 12px; }
 
-.zone-path { min-height: 64vh; flex-direction: column; align-items: center; justify-content: center; padding: 0 12vw; color: #eef3e6; text-shadow: 0 2px 20px rgba(8,16,12,.22), 0 1px 4px rgba(8,16,12,.16); }
+.zone-path { min-height: 64vh; flex-direction: column; align-items: center; justify-content: center; padding: 0 12vw; color: #eef3e6; text-shadow: 0 1px 2px rgba(4,10,7,.45), 0 2px 12px rgba(4,10,7,.38), 0 4px 30px rgba(4,10,7,.3); }
 .path-intro { text-align: center; margin-bottom: 40px; }
 .path-eyebrow { font-size: 10.5px; letter-spacing: .34em; opacity: .8; margin-bottom: 20px; }
 .path-title { font-size: clamp(30px, 4.4vw, 56px); line-height: 1.1; }
@@ -431,7 +443,7 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
 .path-label { font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 11px; }
 .path-desc { font-size: 12px; line-height: 1.9; opacity: .92; font-weight: 300; }
 
-.zone-stillness { min-height: 76vh; align-items: center; justify-content: center; padding: 0 12vw; color: #eef3e6; text-shadow: 0 2px 20px rgba(8,16,12,.22), 0 1px 4px rgba(8,16,12,.16); }
+.zone-stillness { min-height: 76vh; align-items: center; justify-content: center; padding: 0 12vw; color: #eef3e6; text-shadow: 0 1px 2px rgba(4,10,7,.45), 0 2px 12px rgba(4,10,7,.38), 0 4px 30px rgba(4,10,7,.3); }
 .stillness-eyebrow { font-size: 10px; letter-spacing: .34em; opacity: .6; margin-bottom: 30px; }
 .stillness-quote { font-family: var(--font-display); font-style: italic; font-weight: 300; font-size: clamp(28px, 4vw, 56px); line-height: 1.4; opacity: .97; }
 .stillness-caption { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; opacity: .5; margin-top: 30px; }
@@ -443,7 +455,7 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
 .testimonial-quote { font-family: var(--font-display); font-style: italic; font-size: 17px; line-height: 1.82; opacity: .92; margin-bottom: 16px; }
 .testimonial-attr { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; opacity: .65; }
 
-.zone-contact { min-height: 92vh; flex-direction: column; align-items: center; justify-content: center; padding: 0 9vw 12vh; color: #f3ecdd; text-shadow: 0 2px 20px rgba(8,16,12,.22), 0 1px 4px rgba(8,16,12,.16); }
+.zone-contact { min-height: 92vh; flex-direction: column; align-items: center; justify-content: center; padding: 0 9vw 12vh; color: #f3ecdd; text-shadow: 0 1px 2px rgba(4,10,7,.45), 0 2px 12px rgba(4,10,7,.38), 0 4px 30px rgba(4,10,7,.3); }
 .contact-eyebrow { font-size: 10.5px; letter-spacing: .34em; opacity: .68; margin-bottom: 26px; }
 .contact-title { font-size: clamp(44px, 6.4vw, 92px); line-height: 1.0; margin-bottom: 24px; }
 .contact-title em { font-weight: 400; }
@@ -488,8 +500,8 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
 @keyframes scrollpulse { 0%,100% { transform: scaleY(.35); opacity: .2; } 50% { transform: scaleY(1); opacity: .5; } }
 
 /* cream vs ink hero variants */
-.hero-cream { color: var(--cream); text-shadow: 0 2px 20px rgba(8,16,12,.22), 0 1px 4px rgba(8,16,12,.16); }
-.hero-ink { color: var(--ink-green); }
+.hero-cream { color: var(--cream); text-shadow: 0 1px 2px rgba(4,10,7,.45), 0 2px 12px rgba(4,10,7,.38), 0 4px 30px rgba(4,10,7,.3); }
+.hero-ink { color: var(--ink-green); text-shadow: 0 1px 1px rgba(255,255,255,.5), 0 2px 16px rgba(255,255,255,.4); }
 
 /* section shell */
 .section { position: relative; z-index: 2; padding: clamp(60px, 12vh, 130px) var(--edge); }
@@ -500,9 +512,9 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
 .section-title { font-family: var(--font-display); font-weight: 300; font-size: clamp(30px, 4.4vw, 58px); line-height: 1.1; }
 .section-lead { font-size: 13.5px; line-height: 2; opacity: .74; margin: 22px auto 0; max-width: 480px; font-weight: 300; }
 
-.tone-ink { color: var(--ink-teal); }
-.tone-ink-green { color: var(--ink-green); }
-.tone-cream { color: var(--cream); }
+.tone-ink { color: var(--ink-teal); text-shadow: 0 1px 1px rgba(255,255,255,.5), 0 2px 16px rgba(255,255,255,.4); }
+.tone-ink-green { color: var(--ink-green); text-shadow: 0 1px 1px rgba(255,255,255,.5), 0 2px 16px rgba(255,255,255,.4); }
+.tone-cream { color: var(--cream); text-shadow: 0 1px 2px rgba(4,10,7,.45), 0 2px 12px rgba(4,10,7,.38), 0 4px 30px rgba(4,10,7,.3); }
 .tone-sage { color: var(--cream-sage); }
 
 /* big CTA band (shared closing rhythm — framing varies per page below) */
