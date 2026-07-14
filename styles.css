@@ -768,7 +768,13 @@ a.ct-detail__link:hover { color: var(--dusk-deep); text-decoration: underline; t
 .form-submit:hover { transform: translateY(-2px) scale(1.015); box-shadow: 0 16px 40px rgba(15,40,40,.32); background: linear-gradient(180deg, #235039, #163724); }
 .form-submit .arrow { transition: transform .4s var(--ease-spring); }
 .form-submit:hover .arrow { transform: translateX(5px); }
+.form-submit:disabled { opacity: .6; pointer-events: none; }
 .form-consent { font-size: 11px; line-height: 1.7; opacity: .62; margin-top: 18px; text-align: center; }
+.form-error {
+  font-size: 12px; line-height: 1.7; color: #a4442f; text-align: center;
+  max-height: 0; opacity: 0; overflow: hidden; transition: opacity .3s ease, max-height .3s ease;
+}
+.form-error.is-visible { max-height: 100px; opacity: 1; margin-top: 14px; }
 
 /* success state */
 .form-success {

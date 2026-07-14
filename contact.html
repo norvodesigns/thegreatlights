@@ -179,7 +179,9 @@
                 <textarea id="f-message" name="message" required aria-required="true" aria-invalid="false" aria-describedby="err-message" placeholder="Share a little about what's bringing you here…"></textarea>
                 <p class="field-error" id="err-message" role="alert"></p>
               </div>
+              <input type="hidden" name="submitted_at" value="">
               <button type="submit" class="form-submit">Send Message <span class="arrow" aria-hidden="true">→</span></button>
+              <p class="form-error" id="form-error" role="alert"></p>
               <p class="form-consent">By sending, you agree to be contacted about your enquiry. Your details are never shared.</p>
             </form>
 
@@ -251,6 +253,7 @@
   <p class="footer-credit"><a href="https://norvodesigns.com" target="_blank" rel="noopener">Created by Norvo Designs · norvodesigns.com</a></p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" defer></script>
 <script src="site.js" defer></script>
 </body>
 </html>

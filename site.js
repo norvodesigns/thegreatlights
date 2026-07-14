@@ -276,6 +276,22 @@
   if (form) {
     const status = q('#form-status');
     const card = q('.form-card');
+    const errorBox = q('#form-error');
+    const submitBtn = q('.form-submit', form);
+    const submitLabel = submitBtn ? submitBtn.textContent : '';
+
+    /* EmailJS (emailjs.com) — fill in your own three values below:
+       - Public Key:  Account > General
+       - Service ID:  Email Services > (your service)
+       - Template ID: Email Templates > (your template)
+       The public key is designed to be exposed in client-side code — it
+       identifies your account but can't do anything without the service
+       and template you've configured, so this is safe to ship as-is. */
+    const EMAILJS_PUBLIC_KEY = 'NECckX4AiLjvCav0C';
+    const EMAILJS_SERVICE_ID = 'service_2ulcamt';
+    const EMAILJS_TEMPLATE_ID = 'template_ykj8lj2';
+    if (window.emailjs) window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
     const validators = {
       name: (v) => v.trim().length >= 2 || 'Please share your name.',
       email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) || 'Please enter a valid email address.',
@@ -307,6 +323,14 @@
       });
     });
 
+    const showSuccess = () => {
+      if (status) status.textContent = 'Thank you — your message has been received.';
+      if (card) card.classList.add('is-success');
+      const name = (q('#f-name') && q('#f-name').value.trim().split(' ')[0]) || '';
+      const nameSlot = q('#success-name'); if (nameSlot && name) nameSlot.textContent = ', ' + name;
+      if (!reduceMotion && card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const fields = qa('input, textarea', form).filter((i) => i.name in validators);
@@ -317,11 +341,36 @@
         if (firstInvalid) firstInvalid.focus();
         return;
       }
-      if (status) status.textContent = 'Thank you — your message has been received.';
-      if (card) card.classList.add('is-success');
-      const name = (q('#f-name') && q('#f-name').value.trim().split(' ')[0]) || '';
-      const nameSlot = q('#success-name'); if (nameSlot && name) nameSlot.textContent = ', ' + name;
-      if (!reduceMotion && card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (errorBox) { errorBox.textContent = ''; errorBox.classList.remove('is-visible'); }
+
+      const timeField = q('input[name="submitted_at"]', form);
+      if (timeField) timeField.value = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+      if (!window.emailjs) {
+        // EmailJS didn't load (offline, blocked, or the three IDs above
+        // haven't been filled in yet) — fall back to the form's own
+        // mailto: action rather than failing with no feedback at all.
+        form.submit();
+        return;
+      }
+
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+
+      window.emailjs.sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, form).then(
+        () => {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitLabel; }
+          showSuccess();
+        },
+        (err) => {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitLabel; }
+          if (errorBox) {
+            errorBox.textContent = 'Something went wrong sending your message — please try again, or email connect@thegreatlights.com directly.';
+            errorBox.classList.add('is-visible');
+          }
+          if (status) status.textContent = 'There was a problem sending your message.';
+          console.error('EmailJS send failed:', err);
+        }
+      );
     });
   }
 

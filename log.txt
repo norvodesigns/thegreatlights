@@ -480,9 +480,79 @@ as the rest of the footer — if the footer copy/structure changes in one
 place going forward, remember to touch all 4 files (there's no shared
 partial/include system here, plain static HTML).
 
+--- Session K: EmailJS integration (NOT YET LIVE — see below) ---
+User wants the contact form to actually deliver mail (it only ever did
+`action="mailto:..."`, which just opens the visitor's own email client —
+flagged as a known limitation since the very first design-review
+checklist). Wired up EmailJS (emailjs.com, client-side email API, free
+tier 200/mo) instead of standing up a real backend.
+
+  - contact.html: added the EmailJS browser SDK
+    (`@emailjs/browser@4`, via jsdelivr CDN) before site.js; added a
+    hidden `submitted_at` input (populated client-side right before send,
+    not part of the visible form or its validation); added a
+    `#form-error` element for a visible failure state (there wasn't one —
+    only success had a UI before).
+  - site.js: `EMAILJS_PUBLIC_KEY` / `EMAILJS_SERVICE_ID` /
+    `EMAILJS_TEMPLATE_ID` constants at the top of the `if (form) {...}`
+    block — **currently placeholder strings ('YOUR_PUBLIC_KEY' etc.),
+    not real values**. On submit (after the existing field validation
+    passes, unchanged), calls `emailjs.sendForm(SERVICE_ID, TEMPLATE_ID,
+    form)` — sendForm pulls fields straight from the form's own `name=`
+    attributes (name/email/phone/interest/message/submitted_at), so the
+    EmailJS template's `{{variables}}` line up automatically with no
+    manual param-mapping to keep in sync. Success -> existing success-card
+    UI (unchanged). Failure -> button re-enables, `#form-error` shows a
+    message pointing to connect@thegreatlights.com as a fallback. If
+    `window.emailjs` isn't defined at all (CDN blocked/offline), falls
+    back to the form's native `action="mailto:..."` submit instead of
+    failing silently — that attribute was deliberately left in place as a
+    no-JS/no-CDN safety net, not vestigial.
+  - email-template.html (new file, repo root): the actual HTML to paste
+    into EmailJS's template code-view — table-based layout, all styles
+    inline (required for real email client compatibility; `<style>`
+    blocks and modern CSS like flexbox/grid are unreliable-to-absent in
+    Outlook/Gmail rendering), branded with the site's ink-forest/gold/
+    cream palette and Cormorant Garamond/Jost with serif/sans-serif
+    fallback stacks. References the emblem image via its live URL
+    (https://www.thegreatlights.com/assets/...) since email clients need
+    an absolute, publicly-reachable image URL. Not loaded by the site
+    itself — it's a reference doc for whoever administers the EmailJS
+    dashboard.
+  - Verified the *code path* end-to-end with the real EmailJS SDK loaded
+    (jsdelivr CDN is reachable from this environment) but placeholder
+    IDs: confirmed the submit button correctly shows "Sending…" +
+    disabled state, and — since the placeholder strings fail whatever
+    client-side shape-check the SDK does before it would even attempt a
+    network call — confirmed the promise rejects and the error path
+    fires correctly (button re-enables, #form-error becomes visible with
+    the right message). Could NOT verify actual delivery or the true
+    network request shape, since that requires a real account/IDs I
+    don't have and can't fabricate.
+  - UPDATE, same session: user provided the real Public Key / Service ID /
+    Template ID. Swapped into the three EMAILJS_* constants in site.js.
+    Ran two real end-to-end test submissions (name field clearly marked
+    "TEST SUBMISSION — please ignore" so they're unambiguous if they land
+    in the inbox) — both got a genuine `200` from
+    `https://api.emailjs.com/api/v1.0/email/send-form`, and the site's own
+    success-card UI displayed correctly. This is now live/working, not a
+    placeholder — pushed to main same session. If the contact form stops
+    working later, the EMAILJS_* constants + the EmailJS dashboard
+    (service/template still existing, template variables still matching
+    the form's field names) are the first two places to check.
+
 ============================================================
 6. THINGS TO KNOW BEFORE YOU TOUCH THIS CODE
 ============================================================
+- EmailJS is wired up in site.js (search EMAILJS_) with real, working
+  credentials as of Session K (verified via two real test sends, both
+  got HTTP 200 from api.emailjs.com). If the form stops delivering,
+  check: the three EMAILJS_* constants in site.js still match the
+  EmailJS dashboard; the service/template haven't been deleted; the
+  template's `{{variables}}` still match the form field `name=`
+  attributes (name/email/phone/interest/message/submitted_at) since
+  emailjs.sendForm() maps them automatically with no manual mapping
+  layer to fall out of sync.
 - No Lenis. Don't re-add a smooth-scroll library without asking — it was
   explicitly removed twice-over (once for sluggishness, its replacement
   scroll-magnet was then also removed by explicit request). Native scroll
