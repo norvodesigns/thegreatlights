@@ -222,7 +222,7 @@ body.pg-services #lp-water .water-fill {
 .nav-brand:hover .nav-emblem { transform: scale(1.05); box-shadow: 0 4px 18px rgba(0,0,0,.28), 0 0 0 1px rgba(201,168,106,.8); }
 .nav-brand-text { display: flex; flex-direction: column; line-height: 1; }
 .nav-brand-name { font-family: var(--font-display); font-size: 20px; letter-spacing: .04em; color: #fff; transition: color .4s ease; }
-.nav-brand-sub { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: rgba(255,255,255,.7); margin-top: 4px; transition: color .4s ease; }
+.nav-brand-sub { font-size: 8px; letter-spacing: .3em; text-transform: uppercase; color: rgba(255,255,255,.7); margin-top: 4px; transition: color .4s ease; }
 
 .nav-links {
   display: flex; gap: clamp(20px, 3vw, 40px); align-items: center;
@@ -435,16 +435,7 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
 
 .zone-path {
   min-height: 64vh; flex-direction: column; align-items: center; justify-content: center; padding: 0 12vw;
-  color: #eef3e6; text-shadow: 0 1px 2px rgba(4,10,7,.45), 0 2px 12px rgba(4,10,7,.38), 0 4px 30px rgba(4,10,7,.3);
-  position: relative; z-index: 1;
-}
-/* this zone can land on a pale stretch of the scroll-driven sky (the
-   moving gradient isn't aware of what text sits on top of it) — a
-   fixed dark scrim keeps the cream text readable no matter where in
-   the dawn-to-dusk arc it happens to fall */
-.zone-path::before {
-  content: ""; position: absolute; inset: -4vh -8vw; z-index: -1; pointer-events: none;
-  background: radial-gradient(ellipse 75% 85% at 50% 50%, rgba(8,26,22,.4) 0%, rgba(8,26,22,.16) 55%, rgba(8,26,22,0) 80%);
+  color: #000; text-shadow: 0 1px 1px rgba(255,255,255,.5), 0 2px 16px rgba(255,255,255,.4);
 }
 .path-intro { text-align: center; margin-bottom: 40px; }
 .path-eyebrow { font-size: 13px; letter-spacing: .34em; opacity: .8; margin-bottom: 20px; }
@@ -504,8 +495,9 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
 .hero-title em { font-weight: 400; }
 .hero-sub { font-size: 16.5px; letter-spacing: .04em; opacity: .76; margin: 34px auto 0; max-width: 480px; line-height: 1.95; font-weight: 300; }
 .hero-scroll {
-  margin-top: 52px; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; opacity: .55;
+  margin-top: 52px; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; opacity: .85;
   display: inline-flex; flex-direction: column; align-items: center; gap: 12px;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,.5)) drop-shadow(0 1px 3px rgba(0,0,0,.55));
 }
 .hero-scroll .line { width: 1px; height: 46px; background: currentColor; opacity: .4; transform-origin: top;
   animation: scrollpulse 2.6s var(--ease-inout) infinite; }
@@ -565,14 +557,6 @@ main { position: relative; z-index: 2; padding-top: var(--nav-h); }
   border-left: 2px solid var(--moss); color: var(--ink-green);
 }
 .ab-story .credential-line { margin-top: 4px; }
-
-/* mission — sunburst behind the statement, echoing the atmosphere's rays */
-.zone-sunburst { overflow: hidden; }
-.zone-sunburst::before {
-  content: ""; position: absolute; left: 50%; top: 6%; width: 900px; height: 900px; transform: translateX(-50%);
-  background: repeating-conic-gradient(from 0deg at 50% 0%, rgba(124,148,99,0) 0deg, rgba(124,148,99,.10) 2deg, rgba(124,148,99,0) 6deg);
-  pointer-events: none;
-}
 
 /* vertical journey timeline (replaces flat value grid) */
 .ab-timeline { max-width: 640px; margin: 0 auto; text-align: left; position: relative; }

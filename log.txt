@@ -617,6 +617,39 @@ positions (mobile 430x932 and desktop 1440x900) before pushing.
     to) — use CDP `Network.setCacheDisabled` for any future headless
     verification in this project, not URL cache-busting.
 
+--- Session L, follow-up (same day): user pushed back on two of the
+    above and flagged one thing this session missed entirely ---
+  - .zone-path: the radial-scrim approach was rejected — replaced with
+    the simpler fix of just making the text black (`color:#000`) with
+    a light halo text-shadow (same recipe as .hero-ink) instead of a
+    dark shadow. Black reads fine across the section's whole range
+    (pale mint to medium teal) without needing a scrim element at all;
+    removed the .zone-path::before rule entirely.
+  - .hero-scroll ("Scroll to Explore" etc.): opacity:.55 with no
+    dedicated shadow made it unreadable specifically where it overlaps
+    the sun glow on Home. Bumped opacity to .85 and added a real
+    filter:drop-shadow() (not text-shadow, since the vertical "line"
+    tick is a background-color div, not text — text-shadow wouldn't
+    have touched it) so both the label and the line stay legible
+    against the brightest part of the atmosphere, not just the sky.
+  - About's "Our Mission" section had TWO overlapping ray/sunburst
+    textures: the global atmosphere's #lp-rays (synced to the sun,
+    genuinely visible around p=0.19-0.22, which is where Mission
+    lands in About's 0.12-0.40 arc slice) AND a separate local
+    .zone-sunburst::before repeating-conic-gradient added purely for
+    that section. User had asked for this removed in an earlier
+    session; it didn't get done then. Removed .zone-sunburst and its
+    ::before rule from styles.css and the now-dead `zone-sunburst`
+    class from about.html's mission <section> — the global atmosphere
+    rays alone are enough, no local duplicate needed.
+  - .nav-brand-sub ("Life Coach · Reiki Practitioner" under the
+    wordmark) had been bumped 8px -> 11px in the site-wide type-size
+    pass. Reverted to 8px — it's a deliberately tiny label under the
+    display-font name, not body copy, and the user wanted it back.
+    Lesson: a blanket font-size sweep can catch small intentional
+    labels along with the genuinely-too-small body text — worth a
+    second look at anything under ~10px before bumping it broadly.
+
 ============================================================
 6. THINGS TO KNOW BEFORE YOU TOUCH THIS CODE
 ============================================================
