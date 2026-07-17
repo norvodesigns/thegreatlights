@@ -1,6 +1,6 @@
 THE GREAT LIGHTS — PROJECT LOG
 Life coaching & Reiki site for Amy, Lake Havasu City, AZ.
-Last updated: 2026-07-10
+Last updated: 2026-07-17
 
 This file exists so a future chat (Claude or otherwise) can pick up context fast
 without re-reading every file cold. It's a running history, not documentation —
@@ -540,6 +540,82 @@ tier 200/mo) instead of standing up a real backend.
     working later, the EMAILJS_* constants + the EmailJS dashboard
     (service/template still existing, template variables still matching
     the form's field names) are the first two places to check.
+
+--- Session L: readability + atmosphere pass (scrolling clarity, type
+    size, About hill bug, home path-section contrast) ---
+User's to-do list: scrolling wasn't clear (landscape at the bottom read
+as the end of the page), all text was too small even on mobile, the
+About page's hills looked like "stripes" overlapping, and there was
+light text on a light background on the home page. Fixed all four,
+verified visually via headless Chrome screenshots at real scroll
+positions (mobile 430x932 and desktop 1440x900) before pushing.
+
+  - Text size: font-size was hardcoded in px on ~80 individual selectors
+    (no shared type-scale token, no rem/root sizing to lever globally),
+    ranging from 8px to 22px for body/label/nav/footer/form text (titles
+    already used clamp() with sane minimums and were left alone). Bumped
+    every fixed px value site-wide by a consistent step (e.g. 13.5px ->
+    16.5px, 10px -> 12.5px, 16px -> 18px — see the bump table used, it
+    was a one-off Python regex pass over styles.css, not hand-edited
+    line by line). If you add new fixed-px text, match this: body copy
+    should land ~16-17px, small caps/eyebrow labels ~12-13px minimum.
+  - Scrolling clarity: #lp-hills / #lp-water / #lp-grove (the fixed
+    atmosphere's bottom-pinned landscape layers) were 46-54vh tall —
+    over half the viewport. Combined with hills sitting at opacity:1 at
+    scroll position 0 on both Home (arc starts at 0) and About (arc
+    starts at 0.12, still inside hills' opacity:1 window), new visitors
+    landed on a page with a mountain silhouette flush to the bottom
+    edge of the screen, reading as a footer/end-of-content illustration
+    even though it's the very top of a long page. Shrank all three
+    layers to 32-36vh (hills 54->36, water 46->32, grove 48->34) so
+    they read as scenery, not a floor. Also added a `.hero-scroll`
+    cue (existing markup pattern, previously only used on About) to the
+    Home hero ("Scroll to Explore") and Contact hero ("Send a Message")
+    — Services didn't need one, its hero already has an in-page jump
+    nav (svc-toc) that makes "there's more below" obvious on its own.
+  - About page "stripes": About's own copy of the #lp-hills SVG (each
+    page has its own inline copy in its atmosphere block, not shared —
+    see section 6) had its mid and base hill layers (hB, hC) authored
+    as a repeating small-wave pattern (`Q` quadratic curves every
+    ~48-100 units) instead of the smooth two-hump `C` bezier curve
+    every other page uses. Two different-frequency scalloped layers
+    stacked on top of each other read as clashing stripes rather than
+    one coherent mountain ridge. Replaced both paths with smooth curves
+    matching the shape (not colors — About's warm khaki/olive gradient
+    stops were correct and untouched) used on Home/Services/Contact.
+  - Home light-on-light: .zone-path (the "THE PATH / Discover, Settle,
+    Become" section) hardcodes cream text (#eef3e6), same as
+    .zone-stillness and .zone-contact. Those two work fine because they
+    land later in the dawn-to-dusk arc where the sky is already a
+    saturated medium-to-dark teal/green. .zone-path lands earlier
+    (~p=0.55-0.65), squarely in the arc's palest "midday" stretch
+    (sky sample ~rgb(165,214,212) — computed contrast ratio against the
+    cream text was ~1.18, i.e. nearly invisible; this matches the
+    already-documented risk in section 6 about home's raw-atmosphere
+    cream-text zones). Rather than flip the zone to dark text (which
+    would have broken contrast lower in the same section, where the
+    sky has already darkened toward teal), added a `.zone-path::before`
+    radial-gradient scrim — a fixed dark vignette behind the section's
+    own content, independent of whatever sky color happens to be
+    passing behind it at that scroll position. Needed `position:
+    relative; z-index: 1` on `.zone-path` itself (not just position:
+    relative) for the pseudo-element's z-index:-1 to stack correctly
+    inside the zone rather than escaping to main's stacking context and
+    hiding behind the atmosphere entirely — cost some debugging time.
+    If another zone ever shows the same problem, this scrim pattern is
+    the fix, not a text-color flip.
+  - Debugging note: verifying any of this required real scroll events
+    (window.scrollTo + a dispatched 'scroll' event) at a normal
+    viewport height — an earlier attempt that stretched the emulated
+    viewport to the full page height and screenshotted in one shot
+    gave badly misleading results (data-lp-float content never
+    revealed since no scroll event fired, and #lp-hills' bottom:0
+    position rendered against the artificial full-page-height viewport
+    instead of a real one). Also: Chrome's disk cache served stale
+    styles.css even with a `?v=N` cache-buster on the HTML URL itself
+    (query strings on the page don't bust the cache of files it links
+    to) — use CDP `Network.setCacheDisabled` for any future headless
+    verification in this project, not URL cache-busting.
 
 ============================================================
 6. THINGS TO KNOW BEFORE YOU TOUCH THIS CODE
